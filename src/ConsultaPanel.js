@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API_URL = "https://taxi-despachos-sv.onrender.com:3001/taxi";
+const API_URL = "https://taxi-despachos-sv.onrender.com/taxi";
 
 export default function ConsultaPanel() {
   const [lista, setLista] = useState([]);
