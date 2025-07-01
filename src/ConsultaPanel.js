@@ -1,16 +1,33 @@
 import { useEffect, useState } from "react";
 
-const API_URL = "https://taxi-despachos-sv.onrender.com";
+const API_URL = "http://localhost:3001";
 
 export default function ConsultaPanel() {
-  const [lista, setLista] = useState([]);
+  const [aeropuerto, setAeropuerto] = useState([]);
+  const [cataratas, setCataratas] = useState([]);
+  const [cincoEsquinas, setCincoEsquinas] = useState([]);
   const [despachos, setDespachos] = useState(0);
 
   useEffect(() => {
     const cargarDatos = async () => {
       const taxisRes = await fetch(`${API_URL}/taxis`);
       const taxis = await taxisRes.json();
-      setLista(taxis.sort((a, b) => a.orden - b.orden));
+
+      setAeropuerto(
+        taxis
+          .filter((t) => t.parada === "aeropuerto")
+          .sort((a, b) => a.orden - b.orden)
+      );
+      setCataratas(
+        taxis
+          .filter((t) => t.parada === "cataratas")
+          .sort((a, b) => a.orden - b.orden)
+      );
+      setCincoEsquinas(
+        taxis
+          .filter((t) => t.parada === "cinco_esquinas")
+          .sort((a, b) => a.orden - b.orden)
+      );
 
       const statsRes = await fetch(`${API_URL}/stats`);
       const stats = await statsRes.json();
@@ -26,6 +43,23 @@ export default function ConsultaPanel() {
       : "bg-red-200 text-red-900";
   };
 
+  const renderParada = (titulo, lista) => (
+    <div className="space-y-2">
+      <h2 className="text-lg font-semibold mt-4">{titulo}</h2>
+      {lista.length === 0 && <p className="text-gray-600">No hay taxis.</p>}
+      {lista.map((taxi) => (
+        <div
+          key={taxi.id}
+          className={`p-2 rounded shadow ${obtenerColorEstado(taxi.estado)}`}
+          title={`Tabela Baja: ${taxi.TB ? "Sí" : "No"}`}
+        >
+          <strong>{taxi.id}</strong> — {taxi.estado}
+          {taxi.TB && <em className="text-sm text-purple-800"> (TB)</em>}
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div className="max-w-xl mx-auto p-4 space-y-4">
       <h1 className="text-2xl font-bold">Consulta de Taxis</h1>
@@ -35,19 +69,9 @@ export default function ConsultaPanel() {
         <span className="font-semibold text-black">{despachos}</span>
       </div>
 
-      <div className="space-y-2">
-        {lista.length === 0 && <p className="text-gray-600">No hay taxis registrados.</p>}
-        {lista.map((taxi) => (
-          <div
-            key={taxi.id}
-            className={`p-2 rounded shadow ${obtenerColorEstado(taxi.estado)}`}
-            title={`Tabela Baja: ${taxi.TB ? "Sí" : "No"}`}
-          >
-            <strong>{taxi.id}</strong> — {taxi.estado}{" "}
-            {taxi.TB && <em className="text-sm text-purple-800">(TB)</em>}
-          </div>
-        ))}
-      </div>
+      {renderParada("✈️ Aeropuerto", aeropuerto)}
+      {renderParada("🛣️ Cinco Esquinas", cincoEsquinas)}
+      {renderParada("🌊 Cataratas", cataratas)}
     </div>
   );
 }
