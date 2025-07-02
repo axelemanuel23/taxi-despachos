@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useWindowSize } from "@uidotdev/usehooks";
 
-const API_URL = "http://localhost:3001";
+const API_URL = "https://taxi-despachos-sv.onrender.com";
 
 const Button = ({ children, ...props }) => (
   <button
