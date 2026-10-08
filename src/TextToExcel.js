@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import ExcelJS from "exceljs";
+import * as XLSX from "xlsx";
 
 /* =========================================================
    FORMATO DE ENTRADA
