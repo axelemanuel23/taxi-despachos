@@ -268,9 +268,6 @@ const BLOCK_COLS = [
   ["K", "L", "M"],
 ];
 
-const FIRST_COL = 3;
-const LAST_COL = 13;
-
 const ROW_H = 16.5;
 
 const fmtTime = (min) =>
@@ -281,25 +278,6 @@ const casLabel = (cas) =>
     ? "CASILLA ?"
     : `CASILLA ${String(cas).padStart(2, "0")}`;
 
-const COL_INDEX = {
-  A: 0,
-  B: 1,
-  C: 2,
-  D: 3,
-  E: 4,
-  F: 5,
-  G: 6,
-  H: 7,
-  I: 8,
-  J: 9,
-  K: 10,
-  L: 11,
-  M: 12,
-};
-
-function excelAddress(col, row) {
-  return `${col}${row}`;
-}
 
 function ensureCell(ws, address) {
   if (!ws[address]) {
@@ -516,13 +494,12 @@ function drawSection(ws, o) {
 
   mergeCells(ws, `J${r}`, `M${r}`);
 
-  const titleRow = r;
+
 
   /* ---- Encabezado amarillo ---- */
 
   r++;
 
-  const headRow = r;
 
   setRowHeight(
     ws,
