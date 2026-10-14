@@ -12,7 +12,7 @@
     "react-dom": "^19.1.0",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4",
-    "xlsx": "^0.18.5"
+    "jszip": "^3.10.1""
   },
   "scripts": {
     "start": "react-scripts start",
