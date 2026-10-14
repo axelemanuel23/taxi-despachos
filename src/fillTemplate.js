@@ -23,6 +23,7 @@ const BLOCK_COLS = [
   [11, 12, 13],
 ];
 const COL_AGENTS = 3; // C
+const COL_HOURS = 4; // D (HS)
 const COL_DATE = 10; // J
 
 export const casLabel = (cas) =>
@@ -239,6 +240,16 @@ class Sheet {
     el.appendChild(is);
   }
 
+  setFormula(r, c, formula, refStyle, styles) {
+    const el = this.prep(r, c, refStyle);
+    const base = parseInt(el.getAttribute("s") || "0", 10);
+    el.setAttribute("s", String(styles.timeXf(base)));
+
+    const f = this.doc.createElementNS(NS, "f");
+    f.appendChild(this.doc.createTextNode(formula));
+    el.appendChild(f);
+  }
+
   setTime(r, c, minutes, refStyle, styles) {
     const el = this.prep(r, c, refStyle);
     const base = parseInt(el.getAttribute("s") || "0", 10);
@@ -344,11 +355,42 @@ function writeRows(ctx, cols, from, to, rows, label) {
   });
 }
 
+/*
+ * Horas trabajadas de un agente (columna D). Equivale a:
+ *   =(SUMAR.SI(E:E;C6;G:G)-SUMAR.SI(E:E;C6;F:F))+ ... (H/I/J) ... + ... (K/L/M)
+ * En el archivo las fórmulas van en inglés y con comas; Excel las muestra
+ * traducidas. Se suma un día por cada tramo que cruza la medianoche
+ * (fin < inicio, ej. 23:00-0:48), que de otro modo restaría negativo.
+ */
+function hoursFormula(r) {
+  const blocks = [
+    ["E", "F", "G"],
+    ["H", "I", "J"],
+    ["K", "L", "M"],
+  ];
+
+  const diff = blocks
+    .map(
+      ([n, s, e]) =>
+        `(SUMIF(${n}:${n},C${r},${e}:${e})-SUMIF(${n}:${n},C${r},${s}:${s}))`
+    )
+    .join("+");
+
+  const wrap = blocks
+    .map(
+      ([n, s, e]) =>
+        `SUMPRODUCT((${n}$1:${n}$300=C${r})*(${e}$1:${e}$300<${s}$1:${s}$300))`
+    )
+    .join("+");
+
+  return `${diff}+${wrap}`;
+}
+
 function writeAgents(ctx, from, to, agents, label) {
-  const { sheet, problems } = ctx;
+  const { sheet, styles, problems } = ctx;
   const cap = Math.max(0, to - from + 1);
 
-  clearArea(sheet, [COL_AGENTS], from, to);
+  clearArea(sheet, [COL_AGENTS, COL_HOURS], from, to);
 
   if (agents.length > cap) {
     problems.push(
@@ -357,10 +399,13 @@ function writeAgents(ctx, from, to, agents, label) {
   }
 
   const ref = sheet.styleOf(from, COL_AGENTS);
+  const refHs = sheet.styleOf(from, COL_HOURS);
 
-  agents
-    .slice(0, cap)
-    .forEach((name, i) => sheet.setText(from + i, COL_AGENTS, name, ref));
+  agents.slice(0, cap).forEach((name, i) => {
+    const r = from + i;
+    sheet.setText(r, COL_AGENTS, name, ref);
+    sheet.setFormula(r, COL_HOURS, hoursFormula(r), refHs, styles);
+  });
 }
 
 function writeBlock(ctx, cols, labelRow, from, to, block, label) {
@@ -558,6 +603,17 @@ export async function fillTemplate(file, opts) {
   }
 
   /* --- Guardar --- */
+
+  // Obliga a Excel a calcular las fórmulas nuevas al abrir el archivo.
+  const calcWb = /<calcPr\b/.test(wbXml)
+    ? wbXml.replace(/<calcPr\b([^>]*?)(\/?)>/, (m, attrs, slash) =>
+        `<calcPr${attrs.replace(/\sfullCalcOnLoad="[^"]*"/, "")} fullCalcOnLoad="1"${slash}>`
+      )
+    : wbXml.replace(
+        /(<oleSize\b|<customWorkbookViews\b|<pivotCaches\b|<extLst\b|<\/workbook>)/,
+        '<calcPr fullCalcOnLoad="1"/>$1'
+      );
+  zip.file("xl/workbook.xml", calcWb);
 
   zip.file(target, serialize(sheetDoc));
   if (stDoc) zip.file("xl/styles.xml", serialize(stDoc));
